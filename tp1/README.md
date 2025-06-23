@@ -11,6 +11,12 @@
     - [A. Build la meow-api](#a-build-la-meow-api)
     - [B. Packagez vous-même une app](#b-packagez-vous-même-une-app)
     - [C. Ecrire votre propre Dockerfile](#c-ecrire-votre-propre-dockerfile)
+- [Part III. Compose](#part-iii-compose)
+- [I. Getting started](#i-getting-started)
+    - [1. Run it](#1-run-it)
+    - [2. What about networking](#2-what-about-networking)
+- [II. A working meow-api](#ii-a-working-meow-api)
+    - [6. Rendu attendu](#6-rendu-attendu)
 
 # Part I : Init
 
@@ -393,14 +399,15 @@ ac7d52f17e44   it4lik/meow-api:arm   "python app.py"   37 seconds ago   Up 37 se
 
 - avec la commande `docker pull`
 - récupérez :
-  - l'image `python` officielle en version 3.11 (`python:3.11` pour la dernière version)
-  - l'image `mysql` officielle en version 5.7 (8)
-  - l'image `wordpress` officielle en dernière version
-    - c'est le tag `:latest` pour récupérer la dernière version
-    - si aucun tag n'est précisé, `:latest` est automatiquement ajouté
-  - l'image `linuxserver/wikijs` en dernière version
-    - ce n'est pas une image officielle car elle est hébergée par l'utilisateur `linuxserver` contrairement aux 3 précédentes
-    - on doit donc avoir un moins haut niveau de confiance en cette image
+    - l'image `python` officielle en version 3.11 (`python:3.11` pour la dernière version)
+    - l'image `mysql` officielle en version 5.7 (8)
+    - l'image `wordpress` officielle en dernière version
+        - c'est le tag `:latest` pour récupérer la dernière version
+        - si aucun tag n'est précisé, `:latest` est automatiquement ajouté
+    - l'image `linuxserver/wikijs` en dernière version
+        - ce n'est pas une image officielle car elle est hébergée par l'utilisateur `linuxserver` contrairement aux 3
+          précédentes
+        - on doit donc avoir un moins haut niveau de confiance en cette image
 - listez les images que vous avez sur la machine avec une commande `docker`
 
 ```bash
@@ -532,8 +539,8 @@ Receiving objects: 100% (59/59), 1.56 MiB | 16.02 MiB/s, done.
 Resolving deltas: 100% (18/18), done.
 [10:58:38] pierrelepottier :: Pierres-MacBook-Pro  ➜  ~/IntelliJProjects » cd b3e-docker-avance/tp/1/app
 [10:58:45] pierrelepottier :: Pierres-MacBook-Pro  ➜  tp/1/app ‹main› » ls
-app.py           Dockerfile       Dockerfile-arm   requirements.txt
-[10:58:49] pierrelepottier :: Pierres-MacBook-Pro  ➜  tp/1/app ‹main› » mv ~/IntelliJProjects/b3e-docker-avance/tp/1/app/{app.py,Dockerfile-arm,requirements.txt} ~/IntelliJProjects/docker-pierrelepottier/tp1/app/                 
+app.py           Dockerfile       Dockerfile   requirements.txt
+[10:58:49] pierrelepottier :: Pierres-MacBook-Pro  ➜  tp/1/app ‹main› » mv ~/IntelliJProjects/b3e-docker-avance/tp/1/app/{app.py,Dockerfile,requirements.txt} ~/IntelliJProjects/docker-pierrelepottier/tp1/app/                 
 [11:01:29] pierrelepottier :: Pierres-MacBook-Pro  ➜  tp/1/app ‹main*› » 
 ```
 
@@ -549,9 +556,9 @@ docker build . -t meow-api
 ```
 
 ```bash
-[11:03:08] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/app ‹main*› » docker build . -f Dockerfile-arm -t meow-api-arm
+[11:03:08] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/app ‹main*› » docker build . -f Dockerfile -t meow-api-arm
 [+] Building 8.8s (11/11) FINISHED                                   docker:desktop-linux
- => [internal] load build definition from Dockerfile-arm                             0.0s
+ => [internal] load build definition from Dockerfile                             0.0s
  => => transferring dockerfile: 563B                                                 0.0s
  => [internal] load metadata for docker.io/library/python:3                          1.6s
  => [auth] library/python:pull token for registry-1.docker.io                        0.0s
@@ -685,7 +692,8 @@ What's next:
 **Proof !**
 
 - une fois le build terminé, constater que l'image est dispo avec une commande `docker`
-- 
+-
+
 ```bash
 REPOSITORY           TAG              IMAGE ID       CREATED          SIZE
 python_app           version_de_ouf   9bd863483a0c   41 seconds ago   162MB
@@ -719,17 +727,268 @@ Cet exemple d'application est vraiment naze 👎
 - **`COPY`** : ajoute le code dans l'image
 - **`CMD`** : définit la commande à lancer quand le conteneur démarre
 
+```bash
+FROM golang:1.21
 
+# Set destination for COPY
+WORKDIR /app
+
+# Download Go modules
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy the source code. Note the slash at the end, as explained in
+# https://docs.docker.com/reference/dockerfile/#copy
+COPY *.go ./
+
+# Build
+RUN CGO_ENABLED=0 GOOS=linux go build -o /docker-gs-ping
+
+# Optional:
+# To bind to a TCP port, runtime parameters must be supplied to the docker command.
+# But we can document in the Dockerfile what ports
+# the application is going to listen on by default.
+# https://docs.docker.com/reference/dockerfile/#expose
+EXPOSE 8080
+
+# Run
+CMD ["/docker-gs-ping"]
+```
 
 **Publiez votre image sur le Docker Hub**
 
 - faut se créer un compte sur la WebUi du Docker Hub
 - faut créer un *repository* depuis la WebUi, une fois connecté
 - faut nommer correctement votre image, avec votre user dedans
-  - genre moi c'était `it4lik/meow-api`
 - et `docker push`
 - dans le compte-rendu je veux :
-  - toutes les commandes que vous avez tapées
-  - l'URL de votre image sur la WebUI du Docker Hub
+    - toutes les commandes que vous avez tapées
+    - l'URL de votre image sur la WebUI du Docker Hub
+
+```bash
+[11:47:23] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/sample_app ‹main*› » docker build --tag pierre .
+[+] Building 4.4s (11/11) FINISHED                                   docker:desktop-linux
+ => [internal] load build definition from Dockerfile                                 0.0s
+ => => transferring dockerfile: 696B                                                 0.0s
+ => [internal] load metadata for docker.io/library/golang:1.21                       0.0s
+ => [internal] load .dockerignore                                                    0.0s
+ => => transferring context: 2B                                                      0.0s
+ => [1/6] FROM docker.io/library/golang:1.21                                         0.0s
+ => [internal] load build context                                                    0.0s
+ => => transferring context: 1.18kB                                                  0.0s
+ => [2/6] WORKDIR /app                                                               0.0s
+ => [3/6] COPY go.mod go.sum ./                                                      0.0s
+ => [4/6] RUN go mod download                                                        0.6s
+ => [5/6] COPY *.go ./                                                               0.0s
+ => [6/6] RUN CGO_ENABLED=0 GOOS=linux go build -o /docker-gs-ping                   3.5s
+ => exporting to image                                                               0.2s
+ => => exporting layers                                                              0.2s
+ => => writing image sha256:5da615c6ccd28d619566a67653aedf375594d7089439a33da4c7228  0.0s
+ => => naming to docker.io/library/pierre                                            0.0s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/use46h4atzrkqw5b886uea4io
+
+What's next:
+    View a summary of image vulnerabilities and recommendations → docker scout quickview 
+[11:47:31] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/sample_app ‹main*› » docker login            
+Authenticating with existing credentials... [Username: plepottier]
+
+i Info → To login with a different account, run 'docker logout' followed by 'docker login'
 
 
+Login Succeeded
+[11:50:34] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/sample_app ‹main*› » docker tag pierre:latest plepottier/pierre:latest  
+[11:52:17] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/sample_app ‹main*› » docker push plepottier/pierre:latest  
+The push refers to repository [docker.io/plepottier/pierre]
+016369aa6675: Pushed 
+77cd157b7fe2: Pushed 
+ebfb08d53d66: Pushed 
+6b8428b7762d: Pushed 
+ec3bc9c2d5b7: Pushed 
+5f70bf18a086: Mounted from library/golang 
+6fb2efea6c8f: Mounted from library/golang 
+c63593ddc7d1: Mounted from library/golang 
+c301b8e6e0f7: Mounted from library/golang 
+20f026ae0a91: Mounted from library/golang 
+f21c087a3964: Mounted from library/golang 
+cedb364ef937: Mounted from library/golang 
+latest: digest: sha256:f87366aa0c5ca495aaab62e1f18a8fdcf23cd09e5c1938b19183272535e0d34b size: 2833
+[11:52:43] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/sample_app ‹main*› » 
+```
+
+> Le link : `https://hub.docker.com/repository/docker/plepottier/pierre/general`
+
+# Part III. Compose
+
+# I. Getting started
+
+## 1. Run it
+
+**Lancez les deux conteneurs** avec `docker compose`
+
+- déplacez-vous dans le dossier `compose_test` qui contient le fichier `docker-compose.yml`
+- go exécuter `docker compose up -d`
+
+```bash
+[11:57:45] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/compose_test ‹main*› » docker compose up -d
+WARN[0000] /Users/pierrelepottier/IntelliJProjects/docker-pierrelepottier/tp1/compose_test/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion 
+[+] Running 3/3
+ ✔ Network compose_test_default                  C...                                0.0s 
+ ✔ Container compose_test-conteneur_nul-1        Started                             0.1s 
+ ✔ Container compose_test-conteneur_flopesque-1  Started                             0.1s 
+[11:58:22] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/compose_test ‹main*› » 
+```
+
+**Vérifier que les deux conteneurs tournent**
+
+- toujours avec une commande `docker`
+- tu peux aussi use des trucs comme `docker compose ps` ou `docker compose top` qui sont cools dukoo
+    - `docker compose --help` pour voir les bails
+
+```bash
+[11:58:22] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/compose_test ‹main*› » docker ps
+CONTAINER ID   IMAGE     COMMAND        CREATED          STATUS          PORTS     NAMES
+a9c72980a9f4   debian    "sleep 9999"   36 seconds ago   Up 35 seconds             compose_test-conteneur_nul-1
+9a1cc529c6cb   debian    "sleep 9999"   36 seconds ago   Up 35 seconds             compose_test-conteneur_flopesque-1
+[11:58:58] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/compose_test ‹main*› » docker compose ps
+WARN[0000] /Users/pierrelepottier/IntelliJProjects/docker-pierrelepottier/tp1/compose_test/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion 
+NAME                                 IMAGE     COMMAND        SERVICE               CREATED          STATUS          PORTS
+compose_test-conteneur_flopesque-1   debian    "sleep 9999"   conteneur_flopesque   51 seconds ago   Up 50 seconds   
+compose_test-conteneur_nul-1         debian    "sleep 9999"   conteneur_nul         51 seconds ago   Up 50 seconds   
+[11:59:13] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/compose_test ‹main*› » docker compose top
+WARN[0000] /Users/pierrelepottier/IntelliJProjects/docker-pierrelepottier/tp1/compose_test/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion 
+SERVICE              #   UID   PID   PPID  C   STIME  TTY  TIME      CMD
+conteneur_flopesque  1   root  2750  2706  0   09:58  ?    00:00:00  sleep 9999
+conteneur_nul        1   root  2751  2705  0   09:58  ?    00:00:00  sleep 9999
+[11:59:29] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/compose_test ‹main*› » 
+```
+
+## 2. What about networking
+
+**Pop un shell dans le conteneur `conteneur_nul`**
+
+- référez-vous au mémo Docker
+- effectuez un `ping conteneur_flopesque` (ouais ouais, avec ce nom là)
+    - un conteneur est aussi léger que possible, aucun programme/fichier superflu : t'auras pas la commande `ping` !
+    - il faudra installer un paquet qui fournit la commande `ping` pour pouvoir tester
+    - juste pour te faire remarquer que les conteneurs ont pas besoin de connaître leurs IP : les noms fonctionnent
+
+```bash
+[12:00:41] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/compose_test ‹main*› » docker exec -it compose_test-conteneur_nul-1 sh
+# ping conteneur_flopesque
+sh: 1: ping: not found
+# apt-get update
+Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
+Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
+Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [48.0 kB]
+Get:4 http://deb.debian.org/debian bookworm/main arm64 Packages [8693 kB]
+Get:5 http://deb.debian.org/debian bookworm-updates/main arm64 Packages [756 B]
+Get:6 http://deb.debian.org/debian-security bookworm-security/main arm64 Packages [264 kB]
+Fetched 9213 kB in 4s (2218 kB/s)                       
+Reading package lists... Done
+# apt-get install -y iputils-ping
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+libcap2-bin libpam-cap
+The following NEW packages will be installed:
+iputils-ping libcap2-bin libpam-cap
+0 upgraded, 3 newly installed, 0 to remove and 0 not upgraded.
+Need to get 94.9 kB of archives.
+After this operation, 598 kB of additional disk space will be used.
+Get:1 http://deb.debian.org/debian bookworm/main arm64 libcap2-bin arm64 1:2.66-4+deb12u1 [34.1 kB]
+Get:2 http://deb.debian.org/debian bookworm/main arm64 iputils-ping arm64 3:20221126-1+deb12u1 [46.1 kB]
+Get:3 http://deb.debian.org/debian bookworm/main arm64 libpam-cap arm64 1:2.66-4+deb12u1 [14.7 kB]
+Fetched 94.9 kB in 0s (270 kB/s)       
+debconf: delaying package configuration, since apt-utils is not installed
+Selecting previously unselected package libcap2-bin.
+(Reading database ... 6083 files and directories currently installed.)
+Preparing to unpack .../libcap2-bin_1%3a2.66-4+deb12u1_arm64.deb ...
+Unpacking libcap2-bin (1:2.66-4+deb12u1) ...
+Selecting previously unselected package iputils-ping.
+Preparing to unpack .../iputils-ping_3%3a20221126-1+deb12u1_arm64.deb ...
+Unpacking iputils-ping (3:20221126-1+deb12u1) ...
+Selecting previously unselected package libpam-cap:arm64.
+Preparing to unpack .../libpam-cap_1%3a2.66-4+deb12u1_arm64.deb ...
+Unpacking libpam-cap:arm64 (1:2.66-4+deb12u1) ...
+Setting up libcap2-bin (1:2.66-4+deb12u1) ...
+Setting up libpam-cap:arm64 (1:2.66-4+deb12u1) ...
+debconf: unable to initialize frontend: Dialog
+debconf: (No usable dialog-like program is installed, so the dialog based frontend cannot be used. at /usr/share/perl5/Debconf/FrontEnd/Dialog.pm line 78.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/aarch64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/aarch64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/aarch64-linux-gnu/perl-base /usr/lib/aarch64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+debconf: falling back to frontend: Teletype
+Setting up iputils-ping (3:20221126-1+deb12u1) ...
+# ping conteneur_flopesque
+PING conteneur_flopesque (172.18.0.2) 56(84) bytes of data.
+64 bytes from compose_test-conteneur_flopesque-1.compose_test_default (172.18.0.2): icmp_seq=1 ttl=64 time=0.183 ms
+64 bytes from compose_test-conteneur_flopesque-1.compose_test_default (172.18.0.2): icmp_seq=2 ttl=64 time=0.250 ms
+64 bytes from compose_test-conteneur_flopesque-1.compose_test_default (172.18.0.2): icmp_seq=3 ttl=64 time=0.258 ms
+64 bytes from compose_test-conteneur_flopesque-1.compose_test_default (172.18.0.2): icmp_seq=4 ttl=64 time=0.350 ms
+64 bytes from compose_test-conteneur_flopesque-1.compose_test_default (172.18.0.2): icmp_seq=5 ttl=64 time=0.357 ms
+^C
+--- conteneur_flopesque ping statistics ---
+5 packets transmitted, 5 received, 0% packet loss, time 4027ms
+rtt min/avg/max/mdev = 0.183/0.279/0.357/0.065 ms
+```
+
+# II. A working meow-api
+
+Bon, la `meow-api` elle throw des belles erreurs SQL quand on va sur une de ses (seules) routes comme `/users`.
+
+Elle a besoin d'une database pour fonctionner.
+
+## 6. Rendu attendu
+
+**Un dossier `meow_compose/` dans votre dépôt git, qui contient :**
+
+- le `docker-compose.yml`
+- le fichier de seed SQL `seed.sql`
+- le fichier d'environnement `.env`
+- le `Dockerfile` pour build `meow-api`
+
+**Dans votre README de rendu**
+
+- un `docker compose up` qui fonctionne
+- un `curl` sur l'API, sur la route `/users`
+- un `curl` sur l'API, sur la route `/user/3`
+
+```bash
+[14:41:25] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/meow_compose ‹main*› » docker compose up -d --build     
+Compose can now delegate builds to bake for better performance.
+ To do so, set COMPOSE_BAKE=true.
+[+] Building 0.9s (12/12) FINISHED                                   docker:desktop-linux
+ => [meow-api internal] load build definition from Dockerfile                        0.0s
+ => => transferring dockerfile: 596B                                                 0.0s
+ => [meow-api internal] load metadata for docker.io/library/python:3                 0.8s
+ => [meow-api auth] library/python:pull token for registry-1.docker.io               0.0s
+ => [meow-api internal] load .dockerignore                                           0.0s
+ => => transferring context: 2B                                                      0.0s
+ => [meow-api 1/5] FROM docker.io/library/python:3@sha256:5f69d22a88dd4cc4ee1576def  0.0s
+ => [meow-api internal] load build context                                           0.0s
+ => => transferring context: 137B                                                    0.0s
+ => CACHED [meow-api 2/5] WORKDIR /app                                               0.0s
+ => CACHED [meow-api 3/5] COPY ./requirements.txt .                                  0.0s
+ => CACHED [meow-api 4/5] RUN pip install --no-cache-dir -r requirements.txt         0.0s
+ => CACHED [meow-api 5/5] COPY ./app.py .                                            0.0s
+ => [meow-api] exporting to image                                                    0.0s
+ => => exporting layers                                                              0.0s
+ => => writing image sha256:b7062147ee6c7b7b485e23e8378e931a3895939ff8b0aa65299fe35  0.0s
+ => => naming to docker.io/library/meow_compose-meow-api                             0.0s
+ => [meow-api] resolving provenance for metadata file                                0.0s
+[+] Running 4/4
+ ✔ meow-api                      Built                                               0.0s 
+ ✔ Network meow_compose_default  Created                                             0.0s 
+ ✔ Container meow-db             Started                                             0.1s 
+ ✔ Container meow-api            Started    
+```
+
+```bash
+[14:41:35] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/meow_compose ‹main*› » curl http://localhost:8000/user/3
+{"favorite_insult":"Stop paw-sing around!","id":3,"name":"Charlie"}
+[14:41:40] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/meow_compose ‹main*› » curl http://localhost:8000/users 
+[{"favorite_insult":"You silly cat!","id":1,"name":"Alice"},{"favorite_insult":"Meow you kidding me!","id":2,"name":"Bob"},{"favorite_insult":"Stop paw-sing around!","id":3,"name":"Charlie"},{"favorite_insult":"You fur-getful feline!","id":4,"name":"Diana"},{"favorite_insult":"Purr-haps think twice!","id":5,"name":"Eve"}]
+[14:41:47] pierrelepottier :: Pierres-MacBook-Pro  ➜  docker-pierrelepottier/tp1/meow_compose ‹main*› »  
+```

@@ -1,0 +1,27 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: meow-db
+    environment:
+      MYSQL_DATABASE: meow
+      MYSQL_USER: meow
+      MYSQL_PASSWORD: meow
+      MYSQL_ROOT_PASSWORD: rootpassword
+    volumes:
+      - ./seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro
+    ports:
+      - "3306:3306"
+
+  meow-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: meow-api
+    env_file:
+      - .env
+    environment:
+      DB_HOSTNAME: db
+    ports:
+      - "${LISTEN_PORT}:${LISTEN_PORT}"
+    depends_on:
+      - db
